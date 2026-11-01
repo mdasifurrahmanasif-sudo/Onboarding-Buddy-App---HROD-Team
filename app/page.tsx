@@ -35,6 +35,10 @@ export default function SplashPage() {
         <span>Start My Journey</span>
         <Icon name="arrowRight" size={18} />
       </Link>
+
+      <p className="mt-8 font-en text-xs font-medium text-green-light">
+        An Initiative of Akij Resource Human Capital Team
+      </p>
     </div>
   );
 }

@@ -180,6 +180,10 @@ export function LoginForm() {
           Continue with Google
         </button>
       </form>
+
+      <p className="mt-8 text-center font-en text-xs font-medium text-muted">
+        An Initiative of Akij Resource Human Capital Team
+      </p>
     </div>
   );
 }
