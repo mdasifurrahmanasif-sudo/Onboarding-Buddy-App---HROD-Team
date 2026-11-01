@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { deriveSyntheticEmail, MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { getPeopleDeskEmployee } from "@/lib/peopledesk";
+import { refreshEmployeeFromPeopleDesk } from "@/lib/peopledesk-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 
@@ -129,13 +130,8 @@ export async function POST(req: NextRequest) {
 
     await syncTaskProvisioning(enrollNumber, peopleDeskEmployee.sbu);
   } else {
-    const admin = createAdminClient();
-    const { data: employee } = await admin
-      .from("employees")
-      .select("sbu")
-      .eq("enroll_number", enrollNumber)
-      .maybeSingle();
-    await syncTaskProvisioning(enrollNumber, employee?.sbu ?? null);
+    const sbu = await refreshEmployeeFromPeopleDesk(enrollNumber);
+    await syncTaskProvisioning(enrollNumber, sbu);
   }
 
   const { data: sessionData } = await supabase.auth.getSession();

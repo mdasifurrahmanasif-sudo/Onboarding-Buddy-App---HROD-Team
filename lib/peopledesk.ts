@@ -31,7 +31,10 @@ interface PeopleDeskResponse {
  * Returns null when PeopleDesk has no such employee (it responds 200 with all
  * fields null rather than a 404 — checked directly against the live endpoint).
  */
-export async function getPeopleDeskEmployee(enrollNumber: string): Promise<PeopleDeskEmployee | null> {
+export async function getPeopleDeskEmployee(
+  enrollNumber: string,
+  timeoutMs?: number,
+): Promise<PeopleDeskEmployee | null> {
   const baseUrl = process.env.PEOPLEDESK_API_URL;
   const apiKey = process.env.PEOPLEDESK_API_KEY;
   const token = process.env.PEOPLEDESK_API_TOKEN;
@@ -43,6 +46,7 @@ export async function getPeopleDeskEmployee(enrollNumber: string): Promise<Peopl
   const res = await fetch(url, {
     headers: { accept: "*/*", "x-api-key": apiKey, token },
     cache: "no-store",
+    ...(timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
   });
 
   if (!res.ok) {

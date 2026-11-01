@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { deriveSyntheticEmail, MIN_PASSWORD_LENGTH } from "@/lib/auth/credentials";
 import { getPeopleDeskEmployee } from "@/lib/peopledesk";
+import { refreshEmployeeFromPeopleDesk } from "@/lib/peopledesk-sync";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 
 /**
@@ -191,13 +192,11 @@ export async function loginOrCreateProfile(_prevState: LoginState, formData: For
     // Existing account, fast path: re-sync in case their sbu was reassigned
     // (e.g. moved to a different variant) since their last provisioning —
     // otherwise they'd be stuck with a stale/wrong task set forever.
-    const { data: employee } = await supabase
-      .from("employees")
-      .select("sbu")
-      .eq("enroll_number", enrollNumber)
-      .maybeSingle();
+    // Also pull the latest PeopleDesk data (manager, department, ...) so
+    // changes made there since the last login show up here.
     try {
-      await syncTaskProvisioning(supabase, enrollNumber, employee?.sbu ?? null);
+      const sbu = await refreshEmployeeFromPeopleDesk(enrollNumber);
+      await syncTaskProvisioning(supabase, enrollNumber, sbu);
     } catch {
       // Same as above — never let a sync failure block login.
     }
