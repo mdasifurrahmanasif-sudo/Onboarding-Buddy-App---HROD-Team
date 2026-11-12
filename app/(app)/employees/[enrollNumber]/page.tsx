@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getAdminVariantId, getOnboardingVariants, getPhasesForVariant, getTasksForVariant } from "@/lib/data/queries";
+import { getOnboardingVariants, getPhasesForVariant, getTasksForVariant } from "@/lib/data/queries";
+import { canSeeEmployee, getAdminAccess } from "@/lib/auth/admin";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { Icon } from "@/components/icons/Icon";
@@ -12,10 +12,12 @@ import type { PhaseKey } from "@/lib/types";
 
 export default async function EmployeeDetailPage({ params }: { params: Promise<{ enrollNumber: string }> }) {
   const { enrollNumber } = await params;
-  const adminVariantId = await getAdminVariantId();
-  if (!adminVariantId) redirect("/home");
+  const access = await getAdminAccess();
+  if (!access) redirect("/home");
 
-  const supabase = await createClient();
+  // Service role: an HRBP has no RLS read on other employees; canSeeEmployee
+  // below is the gate.
+  const supabase = createAdminClient();
   const [{ data: employee }, { data: variantsData }] = await Promise.all([
     supabase.from("employees").select("*").eq("enroll_number", enrollNumber).single(),
     getOnboardingVariants(),
@@ -28,11 +30,11 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   // keeps variants apart here.
   const variants = (variantsData ?? []).map(mapOnboardingVariant);
   const employeeVariant = resolveVariantForSbu(employee.sbu, variants);
-  if (employeeVariant.id !== adminVariantId) notFound();
+  if (!canSeeEmployee(access, employee, employeeVariant.id)) notFound();
   const isBn = employeeVariant.navMode === "resources";
 
   const [{ data: tasks }, { data: statuses }, { data: tickets }] = await Promise.all([
-    getTasksForVariant(adminVariantId),
+    getTasksForVariant(employeeVariant.id),
     supabase.from("employee_task_status").select("task_id, done").eq("employee_enroll_number", enrollNumber),
     supabase
       .from("help_requests")
@@ -166,7 +168,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     <div>
       <div className="mb-4 mt-0.5 flex items-center gap-3">
         <Link
-          href="/employees"
+          href={access.role === "journey_admin" ? "/employees" : "/admin/people"}
           aria-label="Back"
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-bg text-text"
         >
@@ -228,13 +230,15 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             {isBn ? `বর্তমানে নির্ধারিত: ${employee.buddy}` : `Currently assigned: ${employee.buddy}`}
           </div>
         )}
-        <BuddyAssignForm
-          enrollNumber={employee.enroll_number}
-          initialBuddy={employee.buddy ?? ""}
-          initialPhone={employee.buddy_phone ?? ""}
-          initialEmail={employee.buddy_email ?? ""}
-          action={assignBuddyAsHrAdmin}
-        />
+        {access.role !== "hrbp" && (
+          <BuddyAssignForm
+            enrollNumber={employee.enroll_number}
+            initialBuddy={employee.buddy ?? ""}
+            initialPhone={employee.buddy_phone ?? ""}
+            initialEmail={employee.buddy_email ?? ""}
+            action={assignBuddyAsHrAdmin}
+          />
+        )}
       </div>
 
       {assessmentReviews.length > 0 && (

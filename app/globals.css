@@ -79,3 +79,25 @@ body {
   color: var(--text);
   font-family: var(--font-en);
 }
+
+/* The admin site is a full-width desktop layout: drop the phone frame when an
+   admin page is on screen. Done in CSS because the frame is in the root layout,
+   which can't see the route without breaking server redirects. */
+.phone-page:has([data-admin-site]) {
+  display: block;
+  padding: 0;
+}
+.phone-page:has([data-admin-site]) .phone-frame {
+  max-width: none;
+  height: auto;
+  max-height: none;
+  min-height: 100dvh;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  transform: none;
+}
+.phone-page:has([data-admin-site]) .phone-frame > div {
+  overflow: visible;
+}

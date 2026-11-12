@@ -28,6 +28,7 @@ import { ONBOARDING_TRACK_COOKIE, isOnboardingTrack } from "@/lib/onboarding-tra
 import { currentPhase, daysRemainingInPhase, growthReviewUnlocked, progressPercent } from "@/lib/business-rules";
 import { PHASE_META, PHASE_META_BN, GROWTH_PHASE_META, GROWTH_PHASE_META_BN, type PhaseKey } from "@/lib/types";
 import { bn } from "@/lib/bn";
+import { getAdminAccess } from "@/lib/auth/admin";
 
 export default async function HomePage() {
   // An employee whose home variant isn't the default (e.g. Akij Light
@@ -64,6 +65,7 @@ export default async function HomePage() {
     getIsHrAdmin(),
     getAdminVariantId(),
   ]);
+  const adminAccess = await getAdminAccess();
   const isMirrorApp = variant.navMode === "resources";
   const phaseMeta = isMirrorApp ? PHASE_META_BN : PHASE_META;
   const growthMeta = isMirrorApp ? GROWTH_PHASE_META_BN : GROWTH_PHASE_META;
@@ -306,6 +308,15 @@ export default async function HomePage() {
           score={assessmentCta.score}
           bn={isMirrorApp}
         />
+      )}
+
+      {adminAccess && (
+        <Link
+          href="/admin"
+          className="mt-3 block rounded-button bg-green-dark px-4 py-3.5 text-center font-en text-sm font-bold text-white"
+        >
+          Open admin site
+        </Link>
       )}
 
       {isHrAdmin && (

@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_grants: {
+        Row: {
+          created_at: string
+          enroll_number: string
+          granted_by: string | null
+          role: string
+          sbus: string[]
+          updated_at: string
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          enroll_number: string
+          granted_by?: string | null
+          role: string
+          sbus?: string[]
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          enroll_number?: string
+          granted_by?: string | null
+          role?: string
+          sbus?: string[]
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Relationships: []
+      }
       assessment_templates: {
         Row: {
           assessment_key: string
