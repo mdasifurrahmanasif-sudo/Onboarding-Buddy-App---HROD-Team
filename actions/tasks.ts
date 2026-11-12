@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { pushToEnrolls } from "@/lib/push";
 import { PHASE_META, type PhaseKey } from "@/lib/types";
 
 interface MarkTaskDoneResult {
@@ -93,6 +94,21 @@ export async function markTaskDone(taskId: string): Promise<MarkTaskDoneResult> 
         variant_id: task.variant_id,
         employee_enroll_number: profile.enroll_number,
         journey_id: task.phase,
+      });
+
+      // Phone alert to this journey's admins plus all super admins.
+      const [{ data: grants }, { data: emp }, { data: journey }] = await Promise.all([
+        admin.from("admin_grants").select("enroll_number, role, variant_id").in("role", ["super_admin", "journey_admin"]),
+        admin.from("employees").select("name").eq("enroll_number", profile.enroll_number).maybeSingle(),
+        admin.from("onboarding_phases").select("name").eq("id", task.phase).maybeSingle(),
+      ]);
+      const adminEnrolls = (grants ?? [])
+        .filter((g) => g.role === "super_admin" || g.variant_id === task.variant_id)
+        .map((g) => g.enroll_number);
+      await pushToEnrolls(adminEnrolls, {
+        title: "Journey completed ✅",
+        body: `${emp?.name ?? profile.enroll_number} (${profile.enroll_number}) completed ${journey?.name ?? "a journey"}.`,
+        url: "/admin/completions",
       });
     }
   }
