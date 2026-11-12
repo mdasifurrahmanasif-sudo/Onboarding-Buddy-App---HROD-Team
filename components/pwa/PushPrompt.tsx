@@ -3,8 +3,13 @@
 import { useEffect, useState } from "react";
 import { savePushSubscription } from "@/actions/push";
 
-const SNOOZE_KEY = "ob-push-snooze-until";
-const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+// Shown once per app open (browser session) until both steps are done.
+const SEEN_KEY = "ob-setup-card-seen";
 
 function toKey(base64: string) {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -16,95 +21,133 @@ async function subscribe(publicKey: string) {
   const reg = await navigator.serviceWorker.ready;
   const sub =
     (await reg.pushManager.getSubscription()) ??
-    (await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: toKey(publicKey),
-    }));
-  await savePushSubscription(
-    sub.toJSON() as Parameters<typeof savePushSubscription>[0],
+    (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(publicKey) }));
+  await savePushSubscription(sub.toJSON() as Parameters<typeof savePushSubscription>[0]);
+}
+
+type NotifState = "on" | "off" | "blocked" | "needs-install" | "unsupported";
+
+function readNotifState(): NotifState {
+  if ("serviceWorker" in navigator && "PushManager" in window && "Notification" in window) {
+    if (Notification.permission === "granted") return "on";
+    return Notification.permission === "denied" ? "blocked" : "off";
+  }
+  // iPhone Safari tab: push only exists once the app is on the Home Screen.
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) ? "needs-install" : "unsupported";
+}
+
+function Tick() {
+  return (
+    <span aria-label="Done" className="grid h-7 w-7 place-items-center rounded-full bg-green text-[15px] font-bold text-white">
+      ✓
+    </span>
   );
 }
 
-/** Gentle "turn on phone notifications" card: asks once, snoozes 7 days, explains iPhone. */
+/** App-open card with two steps: install the app, turn on phone notifications. Done steps show a green tick. */
 export function PushPrompt({ publicKey }: { publicKey: string | null }) {
-  const [mode, setMode] = useState<"hidden" | "ask" | "ios">("hidden");
+  const [open, setOpen] = useState(false);
+  const [installed, setInstalled] = useState(false);
+  const [notif, setNotif] = useState<NotifState>("unsupported");
+  const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showSteps, setShowSteps] = useState(false);
 
   useEffect(() => {
-    if (!publicKey) return;
-    // Short delay: let the page settle before asking (also keeps setState out of the effect body).
-    const t = setTimeout(() => {
-      let snoozed = false;
-      try {
-        snoozed = Number(localStorage.getItem(SNOOZE_KEY) ?? 0) > Date.now();
-      } catch {}
-      const supported =
-        "serviceWorker" in navigator &&
-        "PushManager" in window &&
-        "Notification" in window;
-      const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      const standalone = window.matchMedia(
-        "(display-mode: standalone)",
-      ).matches;
+    const onBip = (e: Event) => {
+      e.preventDefault();
+      setInstallEvent(e as BeforeInstallPromptEvent);
+    };
+    const onInstalled = () => setInstalled(true);
+    window.addEventListener("beforeinstallprompt", onBip);
+    window.addEventListener("appinstalled", onInstalled);
 
-      if (!supported) {
-        // iPhone Safari tab: push only exists once the app is on the Home Screen.
-        if (ios && !standalone && !snoozed) setMode("ios");
-        return;
-      }
+    // Short delay: let the page settle first.
+    const t = setTimeout(() => {
+      const isInstalled = window.matchMedia("(display-mode: standalone)").matches;
+      const n = readNotifState();
+      setInstalled(isInstalled);
+      setNotif(n);
       // Already allowed: silently (re)save this device — new phone or another user signed in.
-      if (Notification.permission === "granted")
-        subscribe(publicKey).catch(() => {});
-      else if (Notification.permission === "default" && !snoozed)
-        setMode("ask");
+      if (n === "on" && publicKey) subscribe(publicKey).catch(() => {});
+
+      const notifDone = !publicKey || n === "on" || n === "unsupported";
+      let seen = false;
+      try {
+        seen = sessionStorage.getItem(SEEN_KEY) === "1";
+        sessionStorage.setItem(SEEN_KEY, "1");
+      } catch {}
+      if (!seen && !(isInstalled && notifDone)) setOpen(true);
     }, 1500);
-    return () => clearTimeout(t);
+
+    return () => {
+      clearTimeout(t);
+      window.removeEventListener("beforeinstallprompt", onBip);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, [publicKey]);
 
-  if (mode === "hidden") return null;
+  if (!open) return null;
 
-  const snooze = () => {
-    try {
-      localStorage.setItem(SNOOZE_KEY, String(Date.now() + SNOOZE_MS));
-    } catch {}
-    setMode("hidden");
+  const install = async () => {
+    if (!installEvent) return setShowSteps((v) => !v);
+    await installEvent.prompt();
+    if ((await installEvent.userChoice).outcome === "accepted") setInstalled(true);
+    setInstallEvent(null);
   };
   const turnOn = async () => {
-    setMode("hidden");
-    if ((await Notification.requestPermission()) === "granted")
-      await subscribe(publicKey!).catch(() => {});
+    const p = await Notification.requestPermission();
+    setNotif(p === "granted" ? "on" : p === "denied" ? "blocked" : "off");
+    if (p === "granted" && publicKey) await subscribe(publicKey).catch(() => {});
   };
 
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const allDone = installed && (!publicKey || notif === "on" || notif === "unsupported");
+  const row = "flex items-center justify-between gap-3 rounded-xl border border-line bg-bg p-3";
+  const btn = "shrink-0 rounded-lg bg-green px-3 py-1.5 font-en text-[13px] font-bold text-white";
+
   return (
-    <div
-      role="dialog"
-      aria-label="Phone notifications"
-      className="fixed inset-x-4 bottom-24 z-40 mx-auto max-w-[400px] rounded-card border border-line bg-card p-4 shadow-modal"
-    >
-      <div className="font-en text-[15px] font-bold text-text">
-        🔔 Turn on phone notifications
-      </div>
-      <p className="mt-1 text-[13px] font-medium text-muted">
-        {mode === "ios"
-          ? "On iPhone, first add the app: tap Share → Add to Home Screen, then open it from there."
-          : "Get task reminders and messages from HR even when the app is closed."}
-      </p>
-      <div className="mt-3 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={snooze}
-          className="rounded-lg px-3 py-1.5 font-en text-[13px] font-semibold text-muted"
-        >
-          Not now
-        </button>
-        {mode === "ask" && (
-          <button
-            type="button"
-            onClick={turnOn}
-            className="rounded-lg bg-green px-3 py-1.5 font-en text-[13px] font-bold text-white"
-          >
-            Turn on
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+      <div role="dialog" aria-label="Set up the app" className="w-full max-w-[400px] rounded-card bg-card p-4 shadow-modal">
+        <div className="font-en text-[16px] font-bold text-text">Get the most out of Onboarding Buddy</div>
+        <div className="mt-3 flex flex-col gap-2">
+          <div className={row}>
+            <div>
+              <div className="font-en text-[14px] font-semibold text-text">📲 Install the app</div>
+              <div className="text-[12px] font-medium text-muted">{installed ? "Already installed" : "Open it from your home screen"}</div>
+            </div>
+            {installed ? <Tick /> : <button type="button" onClick={install} className={btn}>Install</button>}
+          </div>
+          {showSteps && !installed && (
+            <p className="rounded-xl border border-line p-3 text-[12.5px] font-medium text-muted">
+              {ios
+                ? 'Tap the Share icon, then choose "Add to Home Screen".'
+                : 'Open the browser menu (⋮) and choose "Install app" or "Add to Home Screen".'}
+            </p>
+          )}
+
+          {publicKey && notif !== "unsupported" && (
+            <div className={row}>
+              <div>
+                <div className="font-en text-[14px] font-semibold text-text">🔔 Turn on notifications</div>
+                <div className="text-[12px] font-medium text-muted">
+                  {notif === "on"
+                    ? "Already on"
+                    : notif === "blocked"
+                      ? "Blocked — allow it in your browser's site settings"
+                      : notif === "needs-install"
+                        ? "On iPhone, install the app first, then open it from the home screen"
+                        : "Reminders and HR messages, even when the app is closed"}
+                </div>
+              </div>
+              {notif === "on" ? <Tick /> : notif === "off" && <button type="button" onClick={turnOn} className={btn}>Turn on</button>}
+            </div>
+          )}
+        </div>
+        <div className="mt-3 flex justify-end">
+          <button type="button" onClick={() => setOpen(false)} className="rounded-lg px-3 py-1.5 font-en text-[13px] font-semibold text-muted">
+            {allDone ? "Done" : "Later"}
           </button>
-        )}
+        </div>
       </div>
     </div>
   );
