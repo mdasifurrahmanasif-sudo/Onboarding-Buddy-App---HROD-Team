@@ -13,6 +13,7 @@ import {
 } from "@/lib/data/queries";
 import { signOut } from "@/actions/sign-out";
 import { InstallAppButton } from "@/components/pwa/InstallAppButton";
+import { NotificationButton } from "@/components/pwa/PushPrompt";
 import { linkGoogleAccount } from "@/actions/auth";
 import { currentPhase, progressPercent } from "@/lib/business-rules";
 import { PHASE_META, PHASE_META_BN, GROWTH_PHASE_META, GROWTH_PHASE_META_BN, type PhaseKey } from "@/lib/types";
@@ -244,6 +245,7 @@ export default async function ProfilePage() {
       </div>
 
       <InstallAppButton bn={isBn} />
+      <NotificationButton publicKey={process.env.VAPID_PUBLIC_KEY || null} bn={isBn} />
 
       {!googleLinked && (
         <form action={linkGoogleAccount} className="mt-5">

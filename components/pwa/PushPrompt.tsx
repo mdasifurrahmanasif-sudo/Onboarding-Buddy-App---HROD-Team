@@ -9,7 +9,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 // Shown once per app open (browser session) until both steps are done.
-const SEEN_KEY = "ob-setup-card-seen";
+const SEEN_KEY = "ob-setup-card-seen-v2"; // bumped so everyone sees it once now that push is live
 
 function toKey(base64: string) {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -149,6 +149,52 @@ export function PushPrompt({ publicKey }: { publicKey: string | null }) {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Always-available Profile button: turn notifications on, or show they're on. */
+export function NotificationButton({ publicKey, bn }: { publicKey: string | null; bn?: boolean }) {
+  const [notif, setNotif] = useState<NotifState | null>(null);
+  useEffect(() => {
+    const t = setTimeout(() => setNotif(readNotifState()), 0);
+    return () => clearTimeout(t);
+  }, []);
+  if (!publicKey || notif === null || notif === "unsupported") return null;
+
+  const turnOn = async () => {
+    const p = await Notification.requestPermission();
+    setNotif(p === "granted" ? "on" : p === "denied" ? "blocked" : "off");
+    if (p === "granted") await subscribe(publicKey).catch(() => {});
+  };
+  const note =
+    notif === "blocked"
+      ? bn
+        ? "নোটিফিকেশন ব্লক করা আছে — ব্রাউজারের সাইট সেটিংস থেকে Allow করুন।"
+        : "Notifications are blocked — allow them in your browser's site settings."
+      : notif === "needs-install"
+        ? bn
+          ? "iPhone-এ আগে অ্যাপটি Home Screen-এ যোগ করুন, তারপর সেখান থেকে খুলুন।"
+          : "On iPhone, add the app to your Home Screen first, then open it from there."
+        : null;
+
+  return (
+    <div className="mt-3">
+      {notif === "on" ? (
+        <div className="flex items-center justify-center gap-2 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-green-dark">
+          <Tick /> {bn ? "নোটিফিকেশন চালু আছে" : "Notifications are on"}
+        </div>
+      ) : notif === "off" ? (
+        <button
+          type="button"
+          onClick={turnOn}
+          className="w-full rounded-button bg-green px-4 py-3.5 font-en text-sm font-bold text-white active:scale-[0.98]"
+        >
+          🔔 {bn ? "নোটিফিকেশন চালু করুন" : "Turn on notifications"}
+        </button>
+      ) : (
+        <p className="rounded-xl border border-line bg-card p-3.5 text-[12.5px] font-medium text-muted">{note}</p>
+      )}
     </div>
   );
 }
