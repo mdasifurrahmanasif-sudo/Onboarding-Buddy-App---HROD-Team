@@ -12,7 +12,10 @@ const BATCH = 50;
  * never throws and is a no-op when the VAPID keys aren't configured.
  */
 export async function pushToEnrolls(enrollNumbers: string[], msg: PushMessage): Promise<void> {
-  const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } = process.env;
+  // No destructuring: next.config `env` inlines only literal process.env.X reads.
+  const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+  const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
+  const VAPID_SUBJECT = process.env.VAPID_SUBJECT;
   if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY || enrollNumbers.length === 0) return;
   try {
     webpush.setVapidDetails(VAPID_SUBJECT || "mailto:career@akijresource.com", VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);

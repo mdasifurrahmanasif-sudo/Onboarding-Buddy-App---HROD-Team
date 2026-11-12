@@ -11,6 +11,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Push (VAPID) keys come from repo secrets; next.config.ts inlines them
+      # into the server build because the runtime image doesn't get .env files.
+      - name: Write build env
+        env:
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+        run: |
+          printf 'VAPID_PUBLIC_KEY=%s\nVAPID_PRIVATE_KEY=%s\nVAPID_SUBJECT=%s\n' \
+            "$VAPID_PUBLIC_KEY" "$VAPID_PRIVATE_KEY" "$VAPID_SUBJECT" > .env.production
+
       - name: Tarball source
         run: |
           tar \
@@ -18,7 +29,7 @@ jobs:
             --exclude='./.git' --exclude='./node_modules' --exclude='**/node_modules' \
             --exclude='./.next' --exclude='./mcp-dist' --exclude='./reference' --exclude='./docs' \
             --exclude='./.claude' --exclude='./vercel_deploy_output*.txt' --exclude='*.zip' \
-            --exclude='./.env*' \
+            --exclude='./.env' --exclude='./.env.local' --exclude='./.env.*.local' --exclude='./.env.development' \
             -czf /tmp/ob-src.tar.gz .
           tar -tzf /tmp/ob-src.tar.gz | grep -q '^./Dockerfile$'
           tar -tzf /tmp/ob-src.tar.gz | grep -q '^./lib/supabase/admin.ts$'
