@@ -1,5 +1,6 @@
 "use server";
 
+import { pushToEnrolls } from "@/lib/push";
 import { requireVariantAdmin } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOnboardingVariants } from "@/lib/data/queries";
@@ -67,6 +68,7 @@ export async function sendNotificationToEmployee(enrollNumber: string, formData:
     body,
   });
   if (error) return { error: error.message };
+  await pushToEnrolls([enrollNumber], { title: title || "Notification", body });
   return { success: true };
 }
 
@@ -96,5 +98,6 @@ export async function sendNotificationToAll(formData: FormData): Promise<ActionR
     })),
   );
   if (error) return { error: error.message };
+  await pushToEnrolls(recipients.map((e) => e.enroll_number), { title: title || "Notification", body });
   return { success: true };
 }

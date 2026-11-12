@@ -1,5 +1,6 @@
 "use server";
 
+import { pushToEnrolls } from "@/lib/push";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -100,6 +101,7 @@ async function notify(
     body,
     related_submission_id: relatedSubmissionId,
   });
+  await pushToEnrolls([recipientEnrollNumber], { title, body, url: "/employee-kpi/notifications" });
 }
 
 /** Employee submits (or resubmits, after rejection) this month's KPI set.

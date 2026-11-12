@@ -1,5 +1,6 @@
 "use server";
 
+import { pushToEnrolls } from "@/lib/push";
 import { requireSuperAdmin } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOnboardingVariants } from "@/lib/data/queries";
@@ -77,6 +78,7 @@ export async function sendBroadcastToEmployee(enrollNumber: string, variantId: s
     body,
   });
   if (error) return { error: error.message };
+  await pushToEnrolls([enrollNumber], { title: title || "Notification", body });
   return { success: true };
 }
 
@@ -105,5 +107,6 @@ export async function sendBroadcastToAll(variantId: string, formData: FormData):
     })),
   );
   if (error) return { error: error.message };
+  await pushToEnrolls(recipients.map((e) => e.enroll_number), { title: title || "Notification", body });
   return { success: true };
 }

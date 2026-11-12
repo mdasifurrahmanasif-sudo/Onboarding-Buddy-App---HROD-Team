@@ -1,3 +1,4 @@
+import { pushToEnrolls } from "@/lib/push";
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isTestEmployee } from "@/lib/test-employees";
@@ -111,6 +112,11 @@ export async function syncLeaderboardAfterSubmission(variantId: string): Promise
       title: "আপনি লিডারবোর্ডে টপ ৩-এ জায়গা পেয়েছেন!",
       body: "অভিনন্দন! পডিয়ামের জন্য আপনার একটি ছবি আপলোড করুন।",
       action_url: "/leaderboard/upload-photo",
+    });
+    await pushToEnrolls([entry.enrollNumber], {
+      title: "আপনি লিডারবোর্ডে টপ ৩-এ জায়গা পেয়েছেন!",
+      body: "অভিনন্দন! পডিয়ামের জন্য আপনার একটি ছবি আপলোড করুন।",
+      url: "/leaderboard/upload-photo",
     });
   }
 

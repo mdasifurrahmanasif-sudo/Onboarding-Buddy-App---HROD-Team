@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAdminVariantId, getAuthUser, getEmployeeVariant, getUnreadNotificationCount } from "@/lib/data/queries";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { PushPrompt } from "@/components/pwa/PushPrompt";
 
 // Deliberately lightweight — only what every page under (app) needs
 // (auth, nav flags, theme, bell badge). Anything that only exists to feed
@@ -43,6 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <NotificationBell unreadCount={unreadNotificationCount} />
       </div>
       <div className="flex-1 px-4 pb-5 pt-1">{children}</div>
+      <PushPrompt publicKey={process.env.VAPID_PUBLIC_KEY ?? null} />
       <BottomNav
         showTeamTab={Boolean(isManagerData)}
         navMode={variant.navMode}

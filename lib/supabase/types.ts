@@ -1451,6 +1451,12 @@ export type Database = {
         }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: { auth: string; created_at: string; endpoint: string; enroll_number: string; p256dh: string }
+        Insert: { auth: string; created_at?: string; endpoint: string; enroll_number: string; p256dh: string }
+        Update: { auth?: string; created_at?: string; endpoint?: string; enroll_number?: string; p256dh?: string }
+        Relationships: []
+      }
       profiles: {
         Row: {
           admin_variant_id: string | null
