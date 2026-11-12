@@ -69,7 +69,7 @@ export function BottomNav({ showTeamTab, navMode = "kpi", showEmployeesTab }: Bo
     : baseItems;
 
   return (
-    <nav className="sticky bottom-0 left-0 right-0 z-40 flex border-t border-line bg-card px-1.5 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-line bg-card px-1.5 pb-[calc(8px+env(safe-area-inset-bottom))] pt-2">
       {items.map((item) => {
         const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (

@@ -48,7 +48,14 @@ export function InstallAppButton({ bn: isBn }: { bn?: boolean }) {
     };
   }, []);
 
-  if (alreadyInstalled) return null;
+  if (alreadyInstalled) {
+    return (
+      <div className="mt-5 flex items-center justify-center gap-2 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-green-dark">
+        <span className="grid h-6 w-6 place-items-center rounded-full bg-green text-[13px] text-white">✓</span>
+        {isBn ? "অ্যাপ ইনস্টল করা আছে" : "App installed"}
+      </div>
+    );
+  }
 
   async function handleClick() {
     if (deferredPrompt) {

@@ -43,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="fixed right-4 top-4 z-30">
         <NotificationBell unreadCount={unreadNotificationCount} />
       </div>
-      <div className="flex-1 px-4 pb-5 pt-1">{children}</div>
+      <div className="flex-1 px-4 pb-28 pt-1">{children}</div>
       <PushPrompt publicKey={process.env.VAPID_PUBLIC_KEY ?? null} />
       <BottomNav
         showTeamTab={Boolean(isManagerData)}

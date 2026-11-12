@@ -160,7 +160,7 @@ export function NotificationButton({ publicKey, bn }: { publicKey: string | null
     const t = setTimeout(() => setNotif(readNotifState()), 0);
     return () => clearTimeout(t);
   }, []);
-  if (!publicKey || notif === null || notif === "unsupported") return null;
+  if (!publicKey || notif === null) return null;
 
   const turnOn = async () => {
     const p = await Notification.requestPermission();
@@ -176,7 +176,9 @@ export function NotificationButton({ publicKey, bn }: { publicKey: string | null
         ? bn
           ? "iPhone-এ আগে অ্যাপটি Home Screen-এ যোগ করুন, তারপর সেখান থেকে খুলুন।"
           : "On iPhone, add the app to your Home Screen first, then open it from there."
-        : null;
+        : bn
+          ? "এই ব্রাউজারে নোটিফিকেশন সাপোর্ট করে না — Chrome বা Safari-তে খুলুন।"
+          : "This browser can't show notifications — open the app in Chrome or Safari.";
 
   return (
     <div className="mt-3">

@@ -8,3 +8,5 @@ docs
 vercel_deploy_output*.txt
 *.zip
 .env*
+# Build-time push keys written by the deploy workflow (inlined server-side by next.config.ts)
+!.env.production
