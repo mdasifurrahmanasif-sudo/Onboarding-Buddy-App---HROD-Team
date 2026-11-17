@@ -42,6 +42,7 @@ export const getAdminAccess = cache(async (): Promise<AdminAccess | null> => {
 export function canSeeEmployee(access: AdminAccess, employee: { sbu: string | null }, employeeVariantId: string): boolean {
   if (access.role === "super_admin") return true;
   if (access.role === "journey_admin") return employeeVariantId === access.variantId;
+  if (access.sbus.includes("*")) return true; // view-only HRBP across all SBUs
   const sbu = employee.sbu ? normalizeSbuName(employee.sbu) : null;
   return sbu !== null && access.sbus.some((s) => normalizeSbuName(s) === sbu);
 }

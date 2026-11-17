@@ -64,7 +64,7 @@ export default async function AdminsPage({ searchParams }: { searchParams: Promi
                 <td className="px-3 py-2 text-text">{ROLE_LABEL[g.role] ?? g.role}</td>
                 <td className="px-3 py-2 text-muted">
                   {g.role === "hrbp"
-                    ? g.sbus.join(", ")
+                    ? g.sbus.join(", ").replace("*", "All SBUs")
                     : g.variant_id
                       ? variantName.get(g.variant_id)
                       : g.role === "super_admin"
@@ -130,6 +130,10 @@ export default async function AdminsPage({ searchParams }: { searchParams: Promi
             SBUs <span className="font-normal text-muted">(HRBP only)</span>
           </legend>
           <div className="grid max-h-56 grid-cols-1 gap-1 overflow-y-auto rounded-lg border border-line p-2 sm:grid-cols-2">
+            <label className="flex items-center gap-2 text-[13px] font-bold text-text sm:col-span-2">
+              <input type="checkbox" name="sbus" value="*" />
+              All SBUs (view-only, includes future SBUs)
+            </label>
             {sbuOptions.map((s) => (
               <label key={s} className="flex items-center gap-2 text-[13px] text-text">
                 <input type="checkbox" name="sbus" value={s} />

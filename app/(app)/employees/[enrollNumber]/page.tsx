@@ -33,15 +33,39 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   if (!canSeeEmployee(access, employee, employeeVariant.id)) notFound();
   const isBn = employeeVariant.navMode === "resources";
 
-  const [{ data: tasks }, { data: statuses }, { data: tickets }] = await Promise.all([
+  const [
+    { data: tasks },
+    { data: statuses },
+    { data: tickets },
+    { data: profile },
+    { data: milestones },
+    { data: reviews },
+  ] = await Promise.all([
     getTasksForVariant(employeeVariant.id),
-    supabase.from("employee_task_status").select("task_id, done").eq("employee_enroll_number", enrollNumber),
+    supabase.from("employee_task_status").select("task_id, done, done_date").eq("employee_enroll_number", enrollNumber),
     supabase
       .from("help_requests")
-      .select("ticket_id, issue_type, status, created_at")
+      .select("ticket_id, issue_type, status, created_at, description, assigned_team")
       .eq("employee_enroll_number", enrollNumber)
       .order("created_at", { ascending: false }),
+    supabase.from("profiles").select("created_at").eq("enroll_number", enrollNumber).maybeSingle(),
+    supabase
+      .from("milestone_assessments")
+      .select("milestone, responses, submitted_at")
+      .eq("employee_enroll_number", enrollNumber)
+      .order("milestone"),
+    supabase
+      .from("employee_assessments")
+      .select("assessment_key, ratings, employee_comment, manager_feedback, hr_observation, final_status, submitted_at")
+      .eq("employee_enroll_number", enrollNumber)
+      .order("assessment_key"),
   ]);
+  const lastActivity = (statuses ?? [])
+    .map((s) => s.done_date)
+    .filter((d): d is string => Boolean(d))
+    .sort()
+    .at(-1);
+  const fmtDate = (d: string | null | undefined) => (d ? new Date(d).toLocaleDateString("en-GB") : "—");
 
   const doneTaskIds = new Set((statuses ?? []).filter((s) => s.done).map((s) => s.task_id));
 
@@ -52,7 +76,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
   let completed = 0;
   let total = 0;
-  let doneByPhase: Record<PhaseKey, { done: number; total: number }> = { "30": { done: 0, total: 0 }, "60": { done: 0, total: 0 }, "90": { done: 0, total: 0 } };
+  const doneByPhase: Record<PhaseKey, { done: number; total: number }> = { "30": { done: 0, total: 0 }, "60": { done: 0, total: 0 }, "90": { done: 0, total: 0 } };
   let doneByJourney = new Map<string, { done: number; total: number }>();
 
   if (journeys) {
@@ -182,6 +206,26 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
+      <div className="mb-4 grid grid-cols-2 gap-x-4 gap-y-2.5 rounded-card border border-line bg-card p-4 text-[12.5px] shadow-card">
+        {[
+          ["Enroll", employee.enroll_number],
+          ["SBU", employee.sbu],
+          ["Department", employee.department],
+          ["Joined", fmtDate(employee.joining_date)],
+          ["Line manager", [employee.reporting_manager, employee.reporting_manager_phone].filter(Boolean).join(" · ")],
+          ["Buddy", employee.buddy],
+          ["Journey", employeeVariant.name],
+          ["First sign-in", profile ? fmtDate(profile.created_at) : "Not signed in yet"],
+          ["Last task ticked", fmtDate(lastActivity)],
+          ["Tickets raised", String((tickets ?? []).length)],
+        ].map(([label, value]) => (
+          <div key={label} className="min-w-0">
+            <div className="text-[10.5px] font-bold uppercase tracking-wide text-muted">{label}</div>
+            <div className="truncate font-semibold text-text">{value || "—"}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="mb-4 rounded-card border border-line bg-card p-4 shadow-card">
         <div className="flex items-baseline justify-between">
           <span className="font-en text-[15px] font-semibold text-text">
@@ -282,6 +326,66 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
         </>
       )}
 
+      <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">30 / 60 / 90 Day Assessments</div>
+      <div className="mb-4 flex flex-col gap-3">
+        {(milestones ?? []).map((m) => {
+          const answers = Object.entries((m.responses ?? {}) as Record<string, string>);
+          const missed = answers.filter(([, a]) => String(a).toLowerCase() !== "yes");
+          return (
+            <div key={m.milestone} className="rounded-card border border-line bg-card p-4 shadow-card">
+              <div className="flex items-center justify-between">
+                <div className="font-en text-[13.5px] font-bold text-text">Day {m.milestone} check</div>
+                <div className="font-en text-[15px] font-extrabold text-green-dark">
+                  {answers.length - missed.length}/{answers.length} yes
+                </div>
+              </div>
+              <div className="text-[11px] font-medium text-muted">Submitted {fmtDate(m.submitted_at)}</div>
+              {missed.length > 0 && (
+                <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-[12px] font-medium text-err-tx">
+                  {missed.map(([q, a]) => (
+                    <li key={q}>
+                      {q} <span className="font-bold">({String(a)})</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          );
+        })}
+        {(reviews ?? []).map((r) => {
+          const scores = Object.values((r.ratings ?? {}) as Record<string, number>);
+          const avg = scores.length ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : "—";
+          return (
+            <div key={r.assessment_key} className="rounded-card border border-line bg-card p-4 shadow-card">
+              <div className="flex items-center justify-between">
+                <div className="font-en text-[13.5px] font-bold text-text">Day {r.assessment_key} feedback review</div>
+                <div className="font-en text-[15px] font-extrabold text-green-dark">avg {avg}</div>
+              </div>
+              <div className="text-[11px] font-medium text-muted">
+                Submitted {fmtDate(r.submitted_at)}
+                {r.final_status && ` · Status: ${r.final_status}`}
+              </div>
+              {[
+                ["Employee comment", r.employee_comment],
+                ["Manager feedback", r.manager_feedback],
+                ["HR observation", r.hr_observation],
+              ]
+                .filter(([, v]) => v && String(v).trim())
+                .map(([label, v]) => (
+                  <div key={label} className="mt-2 rounded-xl bg-bg p-3 text-[12px] font-medium text-text">
+                    <span className="font-bold">{label}:</span> {String(v)}
+                  </div>
+                ))}
+            </div>
+          );
+        })}
+        {(milestones ?? []).length === 0 && (reviews ?? []).length === 0 && (
+          <div className="rounded-card border border-line bg-card p-4 text-center text-sm font-medium text-muted shadow-card">
+            No assessments submitted yet.
+          </div>
+        )}
+      </div>
+
       <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">
         {isBn ? "জমা দেওয়া টিকেট" : "Submitted Tickets"}
       </div>
@@ -300,7 +404,9 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             </div>
             <div className="mt-1 text-[12.5px] font-medium text-muted">
               {t.issue_type} · {new Date(t.created_at).toLocaleDateString()}
+              {t.assigned_team && ` · ${t.assigned_team}`}
             </div>
+            {t.description && <div className="mt-1 text-[12.5px] text-text">{t.description}</div>}
           </div>
         ))}
         {(tickets ?? []).length === 0 && (

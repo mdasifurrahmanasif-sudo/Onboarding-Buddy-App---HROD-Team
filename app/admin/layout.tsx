@@ -55,7 +55,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="font-en text-lg font-extrabold text-text">Onboarding Admin</div>
         <div className="mb-4 text-[13px] font-medium text-muted">
           {ROLE_LABEL[access.role]}
-          {access.role === "hrbp" && ` · ${access.sbus.join(", ")}`}
+          {access.role === "hrbp" && ` · ${access.sbus.join(", ").replace("*", "All SBUs")}`}
         </div>
 
         {access.role === "super_admin" && (

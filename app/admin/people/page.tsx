@@ -59,7 +59,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
       <h1 className="font-en text-xl font-bold text-text">People</h1>
       <p className="mb-4 text-sm font-medium text-muted">
         {people.length} {people.length === 1 ? "person" : "people"} you can see
-        {access.role === "hrbp" && ` in ${access.sbus.join(", ")}`}.
+        {access.role === "hrbp" && ` in ${access.sbus.join(", ").replace("*", "all SBUs")}`}.
       </p>
 
       <form className="mb-4">
@@ -90,7 +90,7 @@ export default async function PeoplePage({ searchParams }: { searchParams: Promi
               return (
                 <tr key={p.enroll_number} className="border-b border-line last:border-0">
                   <td className="px-3 py-2">
-                    <Link href={`/employees/${p.enroll_number}`} className="font-semibold text-text hover:underline">
+                    <Link href={`/admin/people/${p.enroll_number}`} className="font-semibold text-text hover:underline">
                       {p.name}
                     </Link>
                     <div className="text-xs text-muted">
