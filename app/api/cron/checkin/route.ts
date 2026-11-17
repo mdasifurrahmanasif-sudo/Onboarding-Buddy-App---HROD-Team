@@ -6,7 +6,7 @@ import { pushToEnrolls } from "@/lib/push";
 import { isTestEmployee } from "@/lib/test-employees";
 
 const TITLE = "Hey, just checking on you 👋";
-const BODY = "Are you doing fine? Tap to tell us how it's going. It's anonymous.";
+const BODY = "Are you doing fine? Tap to tell us how it's going. Only HR sees your answer.";
 
 /**
  * Called daily at 10 am Dhaka by Supabase pg_cron (job "checkin-10am").

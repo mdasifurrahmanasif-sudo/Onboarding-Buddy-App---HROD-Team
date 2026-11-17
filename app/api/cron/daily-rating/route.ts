@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     variant_id: resolveVariantForSbu(sbuOf.get(r.enroll), variants).id,
     recipient_enroll_number: r.enroll,
     title: "How was your day? 🌟",
-    body: `Rate Day ${r.day} of your onboarding. It's anonymous and takes 5 seconds.`,
+    body: `Rate Day ${r.day} of your onboarding. It takes 5 seconds, and only HR sees it.`,
     action_url: "/ratings",
   }));
   for (let i = 0; i < rows.length; i += 500) {
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
   for (const [day, enrolls] of byDay) {
     await pushToEnrolls(enrolls, {
       title: "How was your day? 🌟",
-      body: `Rate Day ${day} of your onboarding. It's anonymous and takes 5 seconds.`,
+      body: `Rate Day ${day} of your onboarding. It takes 5 seconds, and only HR sees it.`,
       url: "/ratings",
       ttlSeconds: 6 * 60 * 60, // a 5 pm nudge is stale by midnight
     });

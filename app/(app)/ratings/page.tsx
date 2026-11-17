@@ -50,7 +50,7 @@ export default async function RatingsPage() {
             Day {w.today} of {MAX_RATING_DAYS} · {values.length} rated{missed > 0 && ` · ${missed} to catch up`}
           </div>
         )}
-        <p className="mt-3 text-[11.5px] font-medium text-muted">🔒 Anonymous. Your name is never shown with your ratings.</p>
+        <p className="mt-3 text-[11.5px] font-medium text-muted">🔒 Confidential: only the HR team sees your ratings, never your manager.</p>
       </div>
 
       <div className="flex flex-col gap-2">

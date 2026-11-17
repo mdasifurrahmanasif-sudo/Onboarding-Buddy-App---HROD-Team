@@ -9,6 +9,7 @@ import { BuddyAssignForm } from "@/components/team/BuddyAssignForm";
 import { assignBuddyAsHrAdmin } from "@/actions/admin-employees";
 import { progressPercent } from "@/lib/business-rules";
 import type { PhaseKey } from "@/lib/types";
+import { CHECKIN_MOODS, RATING_FACES } from "@/lib/day-ratings";
 
 export default async function EmployeeDetailPage({ params }: { params: Promise<{ enrollNumber: string }> }) {
   const { enrollNumber } = await params;
@@ -40,6 +41,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     { data: profile },
     { data: milestones },
     { data: reviews },
+    { data: dayRatings },
+    { data: checkins },
   ] = await Promise.all([
     getTasksForVariant(employeeVariant.id),
     supabase.from("employee_task_status").select("task_id, done, done_date").eq("employee_enroll_number", enrollNumber),
@@ -59,6 +62,8 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
       .select("assessment_key, ratings, employee_comment, manager_feedback, hr_observation, final_status, submitted_at")
       .eq("employee_enroll_number", enrollNumber)
       .order("assessment_key"),
+    supabase.from("day_ratings").select("day_number, rating, comment").eq("enroll_number", enrollNumber).order("day_number"),
+    supabase.from("checkins").select("day_number, mood, comment, answered_at").eq("enroll_number", enrollNumber).order("day_number"),
   ]);
   const lastActivity = (statuses ?? [])
     .map((s) => s.done_date)
@@ -320,6 +325,48 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                     </div>
                   ))}
                 </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {((dayRatings ?? []).length > 0 || (checkins ?? []).length > 0) && (
+        <>
+          <div className="mb-3 mt-[22px] font-en text-[15px] font-bold text-text">
+            Experience <span className="text-[12px] font-medium text-muted">(confidential to HR)</span>
+          </div>
+          <div className="mb-4 rounded-card border border-line bg-card p-4 shadow-card">
+            {(dayRatings ?? []).length > 0 && (
+              <>
+                <div className="mb-2 text-[12.5px] font-semibold text-muted">
+                  Day ratings · average{" "}
+                  {((dayRatings ?? []).reduce((a, r) => a + r.rating, 0) / (dayRatings ?? []).length).toFixed(1)} / 5
+                </div>
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  {(dayRatings ?? []).map((r) => (
+                    <span
+                      key={r.day_number}
+                      title={RATING_FACES[r.rating - 1].label}
+                      className={`rounded-lg px-2 py-1 text-[12px] font-semibold ${r.rating < 4 ? "bg-err-bg text-err-tx" : "bg-bg text-text"}`}
+                    >
+                      Day {r.day_number} {RATING_FACES[r.rating - 1].emoji}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
+            {(checkins ?? []).map((c) => (
+              <div key={c.day_number} className={`mb-1 text-[12.5px] font-semibold ${c.mood === "bad" ? "text-err-tx" : "text-text"}`}>
+                Day {c.day_number} check-in: {CHECKIN_MOODS.find((m) => m.value === c.mood)?.label ?? c.mood}
+              </div>
+            ))}
+            {[
+              ...(dayRatings ?? []).filter((r) => r.comment?.trim()).map((r) => ({ k: `r${r.day_number}`, label: `Day ${r.day_number} rating`, text: r.comment })),
+              ...(checkins ?? []).filter((c) => c.comment?.trim()).map((c) => ({ k: `c${c.day_number}`, label: `Day ${c.day_number} check-in`, text: c.comment })),
+            ].map((n) => (
+              <div key={n.k} className="mt-2 rounded-xl bg-bg p-3 text-[12px] font-medium text-text">
+                <span className="font-bold">{n.label}:</span> {n.text}
               </div>
             ))}
           </div>

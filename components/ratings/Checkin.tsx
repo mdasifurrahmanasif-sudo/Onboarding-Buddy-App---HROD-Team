@@ -105,7 +105,7 @@ export function CheckinPrompt({ day }: { day: number | null }) {
 
             <p className="mt-3 flex items-start gap-1.5 text-[11.5px] font-medium leading-snug text-muted">
               <span aria-hidden>🔒</span>
-              <span>This is anonymous. Your name is never shown with your answer, and it&apos;s only used to help you.</span>
+              <span>Confidential: only the HR team sees this, never your manager. It&apos;s only used to help you.</span>
             </p>
             <div className="mt-2 flex justify-end gap-2">
               <button type="button" onClick={close} className="rounded-lg px-3 py-1.5 font-en text-[13px] font-semibold text-muted">
