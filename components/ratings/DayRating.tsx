@@ -127,7 +127,7 @@ export function DayRatingPrompt({ day }: { day: number | null }) {
     const key = `ob-day-rating-asked-${day}`;
     // Wait for the install/notification setup card to be closed first.
     const t = setInterval(() => {
-      if (document.querySelector('[aria-label="Set up the app"]')) return;
+      if (document.querySelector('[aria-label="Set up the app"], [aria-label="Check-in"]')) return;
       clearInterval(t);
       try {
         if (sessionStorage.getItem(key)) return;

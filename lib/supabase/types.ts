@@ -1451,6 +1451,12 @@ export type Database = {
         }
         Relationships: []
       }
+      checkins: {
+        Row: { answered_at: string; comment: string | null; day_number: number; enroll_number: string; mood: string }
+        Insert: { answered_at?: string; comment?: string | null; day_number: number; enroll_number: string; mood: string }
+        Update: { answered_at?: string; comment?: string | null; day_number?: number; enroll_number?: string; mood?: string }
+        Relationships: []
+      }
       day_ratings: {
         Row: { comment: string | null; day_number: number; enroll_number: string; rated_at: string; rating: number }
         Insert: { comment?: string | null; day_number: number; enroll_number: string; rated_at?: string; rating: number }

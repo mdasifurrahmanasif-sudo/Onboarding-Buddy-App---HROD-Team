@@ -52,6 +52,25 @@ export function ratingWindow(joiningDate: string | null, firstSignIn: string, no
   return today < firstDay ? null : { start, firstDay, today };
 }
 
+// 15-day check-in: same people and window as day ratings.
+export const CHECKIN_EVERY = 15;
+export const CHECKIN_HOUR = 10; // 10 am Dhaka
+export const CHECKIN_MOODS = [
+  { value: "good", label: "All good, going well" },
+  { value: "mixed", label: "Mostly fine, a few things" },
+  { value: "bad", label: "Not great, I could use help" },
+] as const;
+export type CheckinMood = (typeof CHECKIN_MOODS)[number]["value"];
+
+/** Is today a check-in day (15, 30, 45, 60)? */
+export const isCheckinDay = (w: RatingWindow) => w.today % CHECKIN_EVERY === 0;
+
+/** The latest check-in day that has arrived (and was after launch), or null. */
+export function latestCheckinDay(w: RatingWindow): number | null {
+  const d = Math.floor(w.today / CHECKIN_EVERY) * CHECKIN_EVERY;
+  return d >= CHECKIN_EVERY && d >= w.firstDay ? d : null;
+}
+
 /** Calendar date (YYYY-MM-DD) of day N, for labels. */
 export function dateOfRatingDay(start: string, day: number): string {
   return new Date(Date.parse(start) + (day - 1) * 86_400_000).toISOString().slice(0, 10);

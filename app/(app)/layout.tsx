@@ -5,8 +5,9 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { PushPrompt } from "@/components/pwa/PushPrompt";
 import { DayRatingPrompt } from "@/components/ratings/DayRating";
+import { CheckinPrompt } from "@/components/ratings/Checkin";
 import { getMyRatings } from "@/lib/data/day-ratings";
-import { dhakaHour, RATING_HOUR } from "@/lib/day-ratings";
+import { CHECKIN_HOUR, dhakaHour, latestCheckinDay, RATING_HOUR } from "@/lib/day-ratings";
 
 // Deliberately lightweight — only what every page under (app) needs
 // (auth, nav flags, theme, bell badge). Anything that only exists to feed
@@ -36,6 +37,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     myRatings?.window && dhakaHour() >= RATING_HOUR && !myRatings.ratings.has(myRatings.window.today)
       ? myRatings.window.today
       : null;
+  // From 10 am on a check-in day (and after, until answered), ask the 15-day check-in.
+  const w = myRatings?.window;
+  const due = w ? latestCheckinDay(w) : null;
+  const pendingCheckinDay =
+    w && due && !myRatings.checkinsAnswered.has(due) && (due < w.today || dhakaHour() >= CHECKIN_HOUR) ? due : null;
 
   // Theme override: only variant colors that are actually set replace the
   // app/globals.css defaults — a variant with no colors configured yet (or a
@@ -55,6 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
       <div className="flex-1 px-4 pb-28 pt-1">{children}</div>
       <PushPrompt publicKey={process.env.VAPID_PUBLIC_KEY ?? null} />
+      <CheckinPrompt day={pendingCheckinDay} />
       <DayRatingPrompt day={pendingRatingDay} />
       <BottomNav
         showTeamTab={Boolean(isManagerData)}
