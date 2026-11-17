@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
-import { ratingWindow } from "@/lib/day-ratings";
+import { ratingJoiningDate, ratingWindow } from "@/lib/day-ratings";
 import { pushToEnrolls } from "@/lib/push";
 import { isTestEmployee } from "@/lib/test-employees";
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
 
   const due = (profiles ?? [])
     .filter((p) => !isTestEmployee(p.enroll_number))
-    .map((p) => ({ enroll: p.enroll_number, day: ratingWindow(joinedOf.get(p.enroll_number) ?? null, p.created_at)?.today ?? null }))
+    .map((p) => ({ enroll: p.enroll_number, day: ratingWindow(ratingJoiningDate(p.enroll_number, joinedOf.get(p.enroll_number) ?? null), p.created_at)?.today ?? null }))
     .filter((p): p is { enroll: string; day: number } => p.day !== null);
 
   const rated = new Set<string>();

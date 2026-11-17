@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ratingWindow, type RatingWindow } from "@/lib/day-ratings";
+import { ratingJoiningDate, ratingWindow, type RatingWindow } from "@/lib/day-ratings";
 
 export type MyRatings = {
   enroll: string;
@@ -26,7 +26,7 @@ export const getMyRatings = cache(async (): Promise<MyRatings | null> => {
   ]);
   return {
     enroll: profile.enroll_number,
-    window: ratingWindow(employee?.joining_date ?? null, profile.created_at),
+    window: ratingWindow(ratingJoiningDate(profile.enroll_number, employee?.joining_date ?? null), profile.created_at),
     ratings: new Map((data ?? []).map((r) => [r.day_number, { rating: r.rating, rated_at: r.rated_at }])),
   };
 });

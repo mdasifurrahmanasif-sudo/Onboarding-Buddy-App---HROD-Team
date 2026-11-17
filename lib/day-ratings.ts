@@ -8,6 +8,15 @@ export const ELIGIBLE_FROM = "2026-11-01";
 export const MAX_RATING_DAYS = 60;
 export const RATING_HOUR = 17; // 5 pm Dhaka
 
+// Testers who get the feature exactly like a new joiner, starting at launch
+// (to check what employees see). Remove an enroll to take them out.
+export const RATING_TESTERS: readonly string[] = ["570204"];
+
+/** Joining date the rating window uses: testers start on launch day. */
+export function ratingJoiningDate(enroll: string, joiningDate: string | null): string | null {
+  return RATING_TESTERS.includes(enroll) ? RATING_LAUNCH : joiningDate;
+}
+
 export const RATING_FACES = [
   { value: 1, emoji: "😞", label: "Very bad" },
   { value: 2, emoji: "😕", label: "Bad" },
