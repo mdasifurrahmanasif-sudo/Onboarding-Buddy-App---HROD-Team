@@ -1,12 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Inlined at build: the runtime image gets no .env files. Only referenced
-  // from server-only lib/push.ts, so the private key never reaches the browser.
+  // Inlined at build: the runtime image gets no .env files. The secrets are
+  // only read in server code (lib/push.ts, the cron route), never the browser.
   env: {
     VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY ?? "",
     VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY ?? "",
     VAPID_SUBJECT: process.env.VAPID_SUBJECT ?? "",
+    CRON_SECRET: process.env.CRON_SECRET ?? "",
   },
   experimental: {
     // Lets the client Router Cache reuse an already-visited tab's RSC payload

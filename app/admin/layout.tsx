@@ -21,7 +21,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   // needs a working journey picked first.
   const canEditContent = access.role !== "hrbp" && Boolean(variant);
   const sections: { title: string; links: { href: string; label: string; show?: boolean }[] }[] = [
-    { title: "People", links: [{ href: "/admin/people", label: "People" }] },
+    {
+      title: "People",
+      links: [
+        { href: "/admin/people", label: "People" },
+        { href: "/admin/ratings", label: "Day ratings" },
+      ],
+    },
     {
       title: variant ? `Journey · ${variant.name}` : "Journey",
       links: canEditContent

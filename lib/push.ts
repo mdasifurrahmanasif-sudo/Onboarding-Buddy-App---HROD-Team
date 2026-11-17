@@ -2,7 +2,8 @@ import "server-only";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type PushMessage = { title: string; body: string; url?: string | null };
+/** ttlSeconds: how long the push service keeps trying (default 24 h). */
+export type PushMessage = { title: string; body: string; url?: string | null; ttlSeconds?: number };
 
 const BATCH = 50;
 
@@ -36,7 +37,7 @@ export async function pushToEnrolls(enrollNumbers: string[], msg: PushMessage): 
         subs.slice(i, i + BATCH).map((s) =>
           webpush
             .sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload, {
-              TTL: 24 * 60 * 60,
+              TTL: msg.ttlSeconds ?? 24 * 60 * 60,
               urgency: "high",
             })
             .catch((err: { statusCode?: number }) => {

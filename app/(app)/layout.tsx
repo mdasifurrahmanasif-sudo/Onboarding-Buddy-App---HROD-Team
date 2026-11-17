@@ -4,6 +4,9 @@ import { getAdminVariantId, getAuthUser, getEmployeeVariant, getUnreadNotificati
 import { BottomNav } from "@/components/layout/BottomNav";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { PushPrompt } from "@/components/pwa/PushPrompt";
+import { DayRatingPrompt } from "@/components/ratings/DayRating";
+import { getMyRatings } from "@/lib/data/day-ratings";
+import { dhakaHour, RATING_HOUR } from "@/lib/day-ratings";
 
 // Deliberately lightweight — only what every page under (app) needs
 // (auth, nav flags, theme, bell badge). Anything that only exists to feed
@@ -20,12 +23,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/login");
   }
 
-  const [variant, { data: isManagerData }, adminVariantId, unreadNotificationCount] = await Promise.all([
+  const [variant, { data: isManagerData }, adminVariantId, unreadNotificationCount, myRatings] = await Promise.all([
     getEmployeeVariant(),
     supabase.rpc("is_manager"),
     getAdminVariantId(),
     getUnreadNotificationCount(),
+    getMyRatings(),
   ]);
+
+  // After 5 pm Dhaka, ask for today's rating if it isn't in yet.
+  const pendingRatingDay =
+    myRatings?.today && dhakaHour() >= RATING_HOUR && !myRatings.ratings.has(myRatings.today) ? myRatings.today : null;
 
   // Theme override: only variant colors that are actually set replace the
   // app/globals.css defaults — a variant with no colors configured yet (or a
@@ -45,6 +53,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
       <div className="flex-1 px-4 pb-28 pt-1">{children}</div>
       <PushPrompt publicKey={process.env.VAPID_PUBLIC_KEY ?? null} />
+      <DayRatingPrompt day={pendingRatingDay} />
       <BottomNav
         showTeamTab={Boolean(isManagerData)}
         navMode={variant.navMode}

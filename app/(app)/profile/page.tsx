@@ -246,6 +246,12 @@ export default async function ProfilePage() {
 
       <InstallAppButton bn={isBn} />
       <NotificationButton publicKey={process.env.VAPID_PUBLIC_KEY || null} bn={isBn} />
+      <Link
+        href="/ratings"
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-text"
+      >
+        ⭐ {isBn ? "আমার দিনের রেটিং" : "My Day Ratings"}
+      </Link>
 
       {!googleLinked && (
         <form action={linkGoogleAccount} className="mt-5">

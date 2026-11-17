@@ -1451,6 +1451,12 @@ export type Database = {
         }
         Relationships: []
       }
+      day_ratings: {
+        Row: { comment: string | null; day_number: number; enroll_number: string; rated_at: string; rating: number }
+        Insert: { comment?: string | null; day_number: number; enroll_number: string; rated_at?: string; rating: number }
+        Update: { comment?: string | null; day_number?: number; enroll_number?: string; rated_at?: string; rating?: number }
+        Relationships: []
+      }
       push_subscriptions: {
         Row: { auth: string; created_at: string; endpoint: string; enroll_number: string; p256dh: string }
         Insert: { auth: string; created_at?: string; endpoint: string; enroll_number: string; p256dh: string }
