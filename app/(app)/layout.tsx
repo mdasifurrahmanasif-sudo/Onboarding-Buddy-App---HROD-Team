@@ -33,7 +33,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // After 5 pm Dhaka, ask for today's rating if it isn't in yet.
   const pendingRatingDay =
-    myRatings?.today && dhakaHour() >= RATING_HOUR && !myRatings.ratings.has(myRatings.today) ? myRatings.today : null;
+    myRatings?.window && dhakaHour() >= RATING_HOUR && !myRatings.ratings.has(myRatings.window.today)
+      ? myRatings.window.today
+      : null;
 
   // Theme override: only variant colors that are actually set replace the
   // app/globals.css defaults — a variant with no colors configured yet (or a

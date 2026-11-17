@@ -10,8 +10,11 @@ export default async function RatingsPage() {
   const mine = await getMyRatings();
   if (!mine) redirect("/login");
 
-  const lastDay = mine.today ?? MAX_RATING_DAYS;
-  const days = Array.from({ length: lastDay }, (_, i) => lastDay - i); // newest first
+  const w = mine.window;
+  // In the window: every rateable day, newest first. Afterwards: just the days they rated.
+  const days = w
+    ? Array.from({ length: w.today - w.firstDay + 1 }, (_, i) => w.today - i)
+    : [...mine.ratings.keys()].sort((a, b) => b - a);
   const values = [...mine.ratings.values()].map((r) => r.rating);
   const avg = values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
   const missed = days.filter((d) => !mine.ratings.has(d)).length;
@@ -27,7 +30,11 @@ export default async function RatingsPage() {
       <div className="mb-4 rounded-card border border-line bg-card p-5 text-center shadow-card">
         <div className="text-[12px] font-bold uppercase tracking-wide text-muted">Overall onboarding experience</div>
         {avg === null ? (
-          <div className="mt-2 text-[14px] font-medium text-muted">No ratings yet. Rate your first day below.</div>
+          <div className="mt-2 text-[14px] font-medium text-muted">
+            {w
+              ? "No ratings yet. Rate your first day below."
+              : `Day ratings are for new joiners during their first ${MAX_RATING_DAYS} days.`}
+          </div>
         ) : (
           <>
             <div className="mt-1 text-[44px] leading-none">{face(avg).emoji}</div>
@@ -38,9 +45,11 @@ export default async function RatingsPage() {
             <div className="text-[13px] font-semibold text-text">{face(avg).label}</div>
           </>
         )}
-        <div className="mt-2 text-[12px] font-medium text-muted">
-          {values.length} of {lastDay} days rated{missed > 0 && ` · ${missed} to catch up`}
-        </div>
+        {w && (
+          <div className="mt-2 text-[12px] font-medium text-muted">
+            Day {w.today} of {MAX_RATING_DAYS} · {values.length} rated{missed > 0 && ` · ${missed} to catch up`}
+          </div>
+        )}
         <p className="mt-3 text-[11.5px] font-medium text-muted">🔒 Anonymous. Your name is never shown with your ratings.</p>
       </div>
 
@@ -52,18 +61,18 @@ export default async function RatingsPage() {
               <div>
                 <div className="font-en text-[14px] font-bold text-text">
                   Day {d}
-                  {d === mine.today && <span className="ml-1.5 text-[11px] font-semibold text-green-dark">Today</span>}
+                  {d === w?.today && <span className="ml-1.5 text-[11px] font-semibold text-green-dark">Today</span>}
                 </div>
-                <div className="text-[11.5px] font-medium text-muted">{fmt(dateOfRatingDay(mine.firstSignIn, d))}</div>
+                {w && <div className="text-[11.5px] font-medium text-muted">{fmt(dateOfRatingDay(w.start, d))}</div>}
               </div>
               {r ? (
                 <div className="flex items-center gap-1.5">
                   <span className="text-[24px] leading-none">{face(r.rating).emoji}</span>
                   <span className="text-[12.5px] font-semibold text-muted">{face(r.rating).label}</span>
                 </div>
-              ) : (
+              ) : w ? (
                 <RateDayButton day={d} />
-              )}
+              ) : null}
             </div>
           );
         })}

@@ -14,6 +14,7 @@ import {
 import { signOut } from "@/actions/sign-out";
 import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 import { NotificationButton } from "@/components/pwa/PushPrompt";
+import { getMyRatings } from "@/lib/data/day-ratings";
 import { linkGoogleAccount } from "@/actions/auth";
 import { currentPhase, progressPercent } from "@/lib/business-rules";
 import { PHASE_META, PHASE_META_BN, GROWTH_PHASE_META, GROWTH_PHASE_META_BN, type PhaseKey } from "@/lib/types";
@@ -27,6 +28,9 @@ interface BadgeDef {
 
 export default async function ProfilePage() {
   const supabase = await createClient();
+  // Day ratings: only for new joiners in their window, or anyone who already has ratings.
+  const myRatings = await getMyRatings();
+  const showRatings = Boolean(myRatings?.window || myRatings?.ratings.size);
 
   const [{ data: profile }, { data: employee }, { data: tasks }, { data: statuses }, { data: badgeDefs }, { data: userData }, variant, homeVariant] =
     await Promise.all([
@@ -246,12 +250,14 @@ export default async function ProfilePage() {
 
       <InstallAppButton bn={isBn} />
       <NotificationButton publicKey={process.env.VAPID_PUBLIC_KEY || null} bn={isBn} />
-      <Link
-        href="/ratings"
-        className="mt-3 flex w-full items-center justify-center gap-2 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-text"
-      >
-        ⭐ {isBn ? "আমার দিনের রেটিং" : "My Day Ratings"}
-      </Link>
+      {showRatings && (
+        <Link
+          href="/ratings"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-button border border-line bg-card px-4 py-3.5 font-en text-sm font-bold text-text"
+        >
+          ⭐ {isBn ? "আমার দিনের রেটিং" : "My Day Ratings"}
+        </Link>
+      )}
 
       {!googleLinked && (
         <form action={linkGoogleAccount} className="mt-5">

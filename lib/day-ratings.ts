@@ -1,8 +1,11 @@
-// Daily "rate your day" feature. Day 1 is the person's first day in the app,
-// but never earlier than the feature launch, so existing users don't start
-// with a long backlog of days they can't remember.
+// Daily "rate your day" feature, for new joiners only.
+//  - Who: people who joined on/after ELIGIBLE_FROM (and everyone joining later).
+//  - Day N: counted from the joining date (Day 1 = joining day).
+//  - Window: first MAX_RATING_DAYS days; days before RATING_LAUNCH can't be
+//    rated (nobody was asked then).
 export const RATING_LAUNCH = "2026-11-17";
-export const MAX_RATING_DAYS = 90;
+export const ELIGIBLE_FROM = "2026-11-01";
+export const MAX_RATING_DAYS = 60;
 export const RATING_HOUR = 17; // 5 pm Dhaka
 
 export const RATING_FACES = [
@@ -22,16 +25,25 @@ export function dhakaHour(d: Date = new Date()): number {
   return Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka", hour: "numeric", hourCycle: "h23" }).format(d));
 }
 
-/** Today's onboarding day number (1-based), or null once past the last rated day. */
-export function currentRatingDay(firstSignIn: string, now: Date = new Date()): number | null {
-  const start = [dhakaDate(firstSignIn), RATING_LAUNCH].sort()[1];
-  const days = Math.round((Date.parse(dhakaDate(now)) - Date.parse(start)) / 86_400_000) + 1;
-  if (days < 1) return 1;
-  return days > MAX_RATING_DAYS ? null : days;
+const dayDiff = (from: string, to: string) => Math.round((Date.parse(to) - Date.parse(from)) / 86_400_000);
+
+export type RatingWindow = { start: string; firstDay: number; today: number };
+
+/**
+ * Which days this person can rate right now, or null if they're not in the
+ * program (joined before ELIGIBLE_FROM, or past day MAX_RATING_DAYS).
+ * joiningDate falls back to first sign-in when PeopleDesk has none.
+ */
+export function ratingWindow(joiningDate: string | null, firstSignIn: string, now: Date = new Date()): RatingWindow | null {
+  const start = joiningDate ? joiningDate.slice(0, 10) : dhakaDate(firstSignIn);
+  if (start < ELIGIBLE_FROM) return null;
+  const today = dayDiff(start, dhakaDate(now)) + 1;
+  if (today < 1 || today > MAX_RATING_DAYS) return null;
+  const firstDay = Math.max(1, dayDiff(start, RATING_LAUNCH) + 1);
+  return today < firstDay ? null : { start, firstDay, today };
 }
 
-/** Calendar date (YYYY-MM-DD) of a given day number, for labels. */
-export function dateOfRatingDay(firstSignIn: string, day: number): string {
-  const start = [dhakaDate(firstSignIn), RATING_LAUNCH].sort()[1];
+/** Calendar date (YYYY-MM-DD) of day N, for labels. */
+export function dateOfRatingDay(start: string, day: number): string {
   return new Date(Date.parse(start) + (day - 1) * 86_400_000).toISOString().slice(0, 10);
 }

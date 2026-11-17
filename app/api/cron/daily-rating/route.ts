@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
-import { currentRatingDay } from "@/lib/day-ratings";
+import { ratingWindow } from "@/lib/day-ratings";
 import { pushToEnrolls } from "@/lib/push";
 import { isTestEmployee } from "@/lib/test-employees";
 
 /**
  * Called daily at 5 pm Dhaka by Supabase pg_cron (job "daily-rating-5pm").
  * Sends "rate your day" as a bell notification + phone push to everyone who
- * has opened the app, is within their first 90 days, and hasn't rated today.
+ * has opened the app, joined on/after 1 Nov 2026, is within their first 60
+ * days, and hasn't rated today.
  */
 export async function POST(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -19,15 +20,16 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const [{ data: profiles }, { data: employees }, { data: variantsData }] = await Promise.all([
     admin.from("profiles").select("enroll_number, created_at").limit(10000),
-    admin.from("employees").select("enroll_number, sbu").limit(10000),
+    admin.from("employees").select("enroll_number, sbu, joining_date").limit(10000),
     admin.from("onboarding_variants").select("*"),
   ]);
   const variants = (variantsData ?? []).map(mapOnboardingVariant);
   const sbuOf = new Map((employees ?? []).map((e) => [e.enroll_number, e.sbu]));
+  const joinedOf = new Map((employees ?? []).map((e) => [e.enroll_number, e.joining_date]));
 
   const due = (profiles ?? [])
     .filter((p) => !isTestEmployee(p.enroll_number))
-    .map((p) => ({ enroll: p.enroll_number, day: currentRatingDay(p.created_at) }))
+    .map((p) => ({ enroll: p.enroll_number, day: ratingWindow(joinedOf.get(p.enroll_number) ?? null, p.created_at)?.today ?? null }))
     .filter((p): p is { enroll: string; day: number } => p.day !== null);
 
   const rated = new Set<string>();
