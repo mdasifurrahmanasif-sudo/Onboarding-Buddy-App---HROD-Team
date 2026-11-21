@@ -7,7 +7,7 @@ import { PushPrompt } from "@/components/pwa/PushPrompt";
 import { DayRatingPrompt } from "@/components/ratings/DayRating";
 import { CheckinPrompt } from "@/components/ratings/Checkin";
 import { getMyRatings } from "@/lib/data/day-ratings";
-import { CHECKIN_HOUR, dhakaHour, latestCheckinDay, RATING_HOUR } from "@/lib/day-ratings";
+import { CHECKIN_HOUR, dhakaHour, isWeekend, latestCheckinDay, RATING_HOUR } from "@/lib/day-ratings";
 
 // Deliberately lightweight — only what every page under (app) needs
 // (auth, nav flags, theme, bell badge). Anything that only exists to feed
@@ -34,7 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // After 5 pm Dhaka, ask for today's rating if it isn't in yet.
   const pendingRatingDay =
-    myRatings?.window && dhakaHour() >= RATING_HOUR && !myRatings.ratings.has(myRatings.window.today)
+    myRatings?.window && !isWeekend() && dhakaHour() >= RATING_HOUR && !myRatings.ratings.has(myRatings.window.today)
       ? myRatings.window.today
       : null;
   // From 10 am on a check-in day (and after, until answered), ask the 15-day check-in.

@@ -30,6 +30,12 @@ export function dhakaDate(d: Date | string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dhaka" }).format(new Date(d));
 }
 
+/** Friday and Saturday are the weekend in Bangladesh: no 5 pm rating reminder. */
+export function isWeekend(d: Date = new Date()): boolean {
+  const day = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Dhaka", weekday: "short" }).format(d);
+  return day === "Fri" || day === "Sat";
+}
+
 export function dhakaHour(d: Date = new Date()): number {
   return Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dhaka", hour: "numeric", hourCycle: "h23" }).format(d));
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mapOnboardingVariant, resolveVariantForSbu } from "@/lib/onboarding-variant";
-import { ratingJoiningDate, ratingWindow } from "@/lib/day-ratings";
+import { isWeekend, ratingJoiningDate, ratingWindow } from "@/lib/day-ratings";
 import { pushToEnrolls } from "@/lib/push";
 import { isTestEmployee } from "@/lib/test-employees";
 
@@ -16,6 +16,8 @@ export async function POST(req: NextRequest) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+
+  if (isWeekend()) return NextResponse.json({ skipped: "weekend", notified: 0 });
 
   const admin = createAdminClient();
   const [{ data: profiles }, { data: employees }, { data: variantsData }] = await Promise.all([
